@@ -1,0 +1,48 @@
+# Portfolio .gitignore
+
+# Operating System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Temporary Files
+*.tmp
+*.temp
+.cache/
+
+# Environment Files (if you add any later)
+.env
+.env.local
+.env.development
+.env.production
+
+# Node Modules (if you add any later)
+node_modules/
+package-lock.json
+yarn.lock
+
+# Build Files (if you add build process later)
+dist/
+build/
+
+# Backup Files
+*.bak
+*.backup
