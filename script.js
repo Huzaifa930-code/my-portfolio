@@ -1,348 +1,218 @@
-/* ============================================
-   MODERN PORTFOLIO - JAVASCRIPT
-   Huzaifa Ilyas - Full-Stack Developer
-   ============================================ */
-
 'use strict';
 
-// Wait for DOM to be fully loaded
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', () => {
 
-/* ============================================
-   MOBILE MENU TOGGLE
-   ============================================ */
+    /* ============================================
+       MOBILE NAVIGATION
+       ============================================ */
 
-const hamburger = document.getElementById('hamburger');
-const navMenu = document.querySelector('.nav-menu');
+    const hamburger  = document.getElementById('hamburger');
+    const navMenu    = document.querySelector('.nav-menu');
+    const navOverlay = document.getElementById('navOverlay');
 
-// Toggle mobile menu when hamburger is clicked
-hamburger.addEventListener('click', () => {
-    hamburger.classList.toggle('active');
-    navMenu.classList.toggle('active');
-});
-
-// Close mobile menu when a nav link is clicked
-const navLinks = document.querySelectorAll('.nav-link');
-navLinks.forEach(link => {
-    link.addEventListener('click', () => {
-        hamburger.classList.remove('active');
-        navMenu.classList.remove('active');
-    });
-});
-
-// Close mobile menu when clicking outside
-document.addEventListener('click', (event) => {
-    const isClickInsideNav = navMenu.contains(event.target);
-    const isClickOnHamburger = hamburger.contains(event.target);
-
-    if (!isClickInsideNav && !isClickOnHamburger && navMenu.classList.contains('active')) {
-        hamburger.classList.remove('active');
-        navMenu.classList.remove('active');
+    function openMenu() {
+        hamburger.classList.add('active');
+        navMenu.classList.add('active');
+        navOverlay.classList.add('active');
+        document.body.classList.add('menu-open');
+        hamburger.setAttribute('aria-expanded', 'true');
     }
-});
 
-/* ============================================
-   SMOOTH SCROLLING FOR NAVIGATION LINKS
-   ============================================ */
+    function closeMenu() {
+        hamburger.classList.remove('active');
+        navMenu.classList.remove('active');
+        navOverlay.classList.remove('active');
+        document.body.classList.remove('menu-open');
+        hamburger.setAttribute('aria-expanded', 'false');
+    }
 
-// Smooth scroll to sections (already handled by CSS scroll-behavior: smooth)
-// But adding this for better browser compatibility
-navLinks.forEach(link => {
-    link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const targetId = link.getAttribute('href');
-        const targetSection = document.querySelector(targetId);
-
-        if (targetSection) {
-            const offsetTop = targetSection.offsetTop - 70; // Account for fixed navbar height
-            window.scrollTo({
-                top: offsetTop,
-                behavior: 'smooth'
-            });
-        }
+    hamburger.addEventListener('click', () => {
+        navMenu.classList.contains('active') ? closeMenu() : openMenu();
     });
-});
 
-/* ============================================
-   ACTIVE NAVIGATION LINK ON SCROLL
-   ============================================ */
+    hamburger.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); hamburger.click(); }
+    });
 
-const sections = document.querySelectorAll('.section, .hero');
-const navLinksArray = Array.from(navLinks);
+    // Close on nav link click, overlay click, or Escape key
+    document.querySelectorAll('.nav-link').forEach(link => link.addEventListener('click', closeMenu));
+    navOverlay.addEventListener('click', closeMenu);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
 
-function highlightNavLink() {
-    let scrollPosition = window.scrollY + 100;
+    /* ============================================
+       SMOOTH SCROLL — ALL ANCHOR LINKS
+       ============================================ */
 
-    sections.forEach(section => {
-        const sectionTop = section.offsetTop;
-        const sectionHeight = section.offsetHeight;
-        const sectionId = section.getAttribute('id');
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', (e) => {
+            const href = anchor.getAttribute('href');
+            if (href === '#') return;
+            const target = document.querySelector(href);
+            if (!target) return;
+            e.preventDefault();
+            const offset = target.getBoundingClientRect().top + window.scrollY - 70;
+            window.scrollTo({ top: offset, behavior: 'smooth' });
+        });
+    });
 
-        if (scrollPosition >= sectionTop && scrollPosition < sectionTop + sectionHeight) {
-            navLinksArray.forEach(link => {
-                link.classList.remove('active');
-                if (link.getAttribute('href') === `#${sectionId}`) {
-                    link.classList.add('active');
+    /* ============================================
+       NAVBAR — GLASS EFFECT & ACTIVE LINK
+       ============================================ */
+
+    const navbar   = document.getElementById('navbar');
+    const backToTop = document.getElementById('backToTop');
+
+    // Only track sections that have a corresponding nav link
+    const navLinks = document.querySelectorAll('.nav-link');
+    const trackedIds = new Set(
+        Array.from(navLinks).map(l => l.getAttribute('href').replace('#', ''))
+    );
+    const sections = Array.from(document.querySelectorAll('section[id]'))
+        .filter(s => trackedIds.has(s.id));
+
+    function onScroll() {
+        const scrollY = window.scrollY;
+
+        // Frosted glass navbar
+        navbar.classList.toggle('scrolled', scrollY > 40);
+
+        // Active nav link — last section whose top edge has passed the viewport midpoint
+        let current = '';
+        sections.forEach(section => {
+            if (scrollY >= section.offsetTop - 140) current = section.id;
+        });
+        navLinks.forEach(link => {
+            link.classList.toggle('active', link.getAttribute('href') === `#${current}`);
+        });
+
+        // Back to top visibility
+        backToTop.classList.toggle('visible', scrollY > 500);
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll(); // run once on load to set initial state
+
+    /* ============================================
+       BACK TO TOP
+       ============================================ */
+
+    backToTop.addEventListener('click', (e) => {
+        e.preventDefault();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    /* ============================================
+       SCROLL REVEAL (INTERSECTION OBSERVER)
+       ============================================ */
+
+    const revealObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (!entry.isIntersecting) return;
+            const el    = entry.target;
+            const delay = parseInt(el.dataset.revealDelay || '0', 10);
+            setTimeout(() => el.classList.add('is-visible'), delay);
+            revealObserver.unobserve(el);
+        });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+    document.querySelectorAll('[data-reveal]').forEach(el => revealObserver.observe(el));
+
+    /* ============================================
+       STATS COUNTER ANIMATION
+       ============================================ */
+
+    const counterObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (!entry.isIntersecting) return;
+
+            const el       = entry.target;
+            const target   = parseInt(el.dataset.target, 10);
+            const duration = 1400;
+            const start    = performance.now();
+
+            function step(now) {
+                const progress = Math.min((now - start) / duration, 1);
+                const eased    = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+                el.textContent = Math.floor(eased * target);
+                if (progress < 1) requestAnimationFrame(step);
+                else el.textContent = target;
+            }
+
+            requestAnimationFrame(step);
+            counterObserver.unobserve(el);
+        });
+    }, { threshold: 0.5 });
+
+    document.querySelectorAll('.stat-number[data-target]').forEach(el => counterObserver.observe(el));
+
+    /* ============================================
+       TYPEWRITER EFFECT
+       ============================================ */
+
+    const roles = [
+        'Full-Stack Developer',
+        'Mobile App Developer',
+        'React Engineer',
+        'Node.js Developer',
+        'Python Developer',
+    ];
+
+    const typedEl = document.getElementById('typed-text');
+
+    if (typedEl) {
+        let roleIndex  = 0;
+        let charIndex  = 0;
+        let isDeleting = false;
+        let isPaused   = false;
+
+        const TYPE_SPEED   = 70;
+        const DELETE_SPEED = 40;
+        const PAUSE_END    = 2200;
+        const PAUSE_START  = 400;
+
+        function tick() {
+            if (isPaused) return;
+            const currentRole = roles[roleIndex];
+
+            if (!isDeleting) {
+                typedEl.textContent = currentRole.slice(0, charIndex + 1);
+                charIndex++;
+                if (charIndex === currentRole.length) {
+                    isPaused = true;
+                    setTimeout(() => { isPaused = false; isDeleting = true; tick(); }, PAUSE_END);
+                    return;
                 }
-            });
+                setTimeout(tick, TYPE_SPEED);
+            } else {
+                typedEl.textContent = currentRole.slice(0, charIndex - 1);
+                charIndex--;
+                if (charIndex === 0) {
+                    isDeleting = false;
+                    roleIndex  = (roleIndex + 1) % roles.length;
+                    isPaused   = true;
+                    setTimeout(() => { isPaused = false; tick(); }, PAUSE_START);
+                    return;
+                }
+                setTimeout(tick, DELETE_SPEED);
+            }
         }
-    });
-}
 
-window.addEventListener('scroll', highlightNavLink);
-
-/* ============================================
-   BACK TO TOP BUTTON
-   ============================================ */
-
-const backToTopButton = document.getElementById('backToTop');
-
-// Show/hide back to top button based on scroll position
-window.addEventListener('scroll', () => {
-    if (window.scrollY > 500) {
-        backToTopButton.classList.add('visible');
-    } else {
-        backToTopButton.classList.remove('visible');
+        // Delay start so the hero entrance animation plays first
+        setTimeout(tick, 900);
     }
+
+    /* ============================================
+       DYNAMIC FOOTER YEAR
+       ============================================ */
+
+    const yearEl = document.getElementById('footer-year');
+    if (yearEl) yearEl.textContent = new Date().getFullYear();
+
+    /* ============================================
+       CONSOLE EASTER EGG
+       ============================================ */
+
+    console.log('%c👋 Hey there, developer!', 'color: #00d4ff; font-size: 1.2rem; font-weight: bold;');
+    console.log('%cSnooping around? Nice — let\'s connect: huzaifailyas522@gmail.com', 'color: #8888aa; font-size: 0.9rem;');
+
 });
-
-// Smooth scroll to top when back to top button is clicked
-backToTopButton.addEventListener('click', (e) => {
-    e.preventDefault();
-    window.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-    });
-});
-
-/* ============================================
-   NAVBAR BACKGROUND ON SCROLL
-   ============================================ */
-
-const navbar = document.getElementById('navbar');
-
-window.addEventListener('scroll', () => {
-    if (window.scrollY > 100) {
-        navbar.style.backgroundColor = 'rgba(15, 15, 30, 0.98)';
-        navbar.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.3)';
-    } else {
-        navbar.style.backgroundColor = 'rgba(15, 15, 30, 0.95)';
-        navbar.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.2)';
-    }
-});
-
-/* ============================================
-   SCROLL ANIMATIONS (FADE IN ON SCROLL)
-   ============================================ */
-
-// Intersection Observer for fade-in animations
-const observerOptions = {
-    threshold: 0.1,
-    rootMargin: '0px 0px -50px 0px'
-};
-
-const observerCallback = (entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            entry.target.style.opacity = '1';
-            entry.target.style.transform = 'translateY(0)';
-        }
-    });
-};
-
-const observer = new IntersectionObserver(observerCallback, observerOptions);
-
-// Elements to animate on scroll
-const elementsToAnimate = document.querySelectorAll(
-    '.about-content, .skill-category, .project-card, .contact-card, .highlight-item'
-);
-
-elementsToAnimate.forEach(element => {
-    element.style.opacity = '0';
-    element.style.transform = 'translateY(30px)';
-    element.style.transition = 'opacity 0.6s ease-out, transform 0.6s ease-out';
-    observer.observe(element);
-});
-
-/* ============================================
-   HERO BUTTONS SMOOTH SCROLL
-   ============================================ */
-
-// Select all buttons in hero section (including scroll-down button)
-const heroButtons = document.querySelectorAll('.hero-buttons .btn, .scroll-down a');
-
-console.log(`✅ Found ${heroButtons.length} hero buttons`);
-
-heroButtons.forEach((button, index) => {
-    console.log(`Button ${index + 1}:`, button.getAttribute('href'));
-
-    button.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-
-        const targetId = this.getAttribute('href');
-        console.log(`🖱️ Button clicked! Target: ${targetId}`);
-
-        const targetSection = document.querySelector(targetId);
-
-        if (targetSection) {
-            console.log(`✅ Target section found:`, targetSection);
-
-            // Get the exact position
-            const navbarHeight = 70;
-            const elementPosition = targetSection.getBoundingClientRect().top;
-            const offsetPosition = elementPosition + window.pageYOffset - navbarHeight;
-
-            console.log(`📍 Current scroll: ${window.pageYOffset}`);
-            console.log(`📍 Target position: ${offsetPosition}`);
-
-            // Smooth scroll using window.scrollTo
-            window.scrollTo({
-                top: offsetPosition,
-                behavior: 'smooth'
-            });
-
-            console.log(`✅ Scroll initiated to ${offsetPosition}px`);
-
-            // Verify scroll after a moment
-            setTimeout(() => {
-                console.log(`📊 New scroll position: ${window.pageYOffset}`);
-            }, 1000);
-        } else {
-            console.error(`❌ Target section not found: ${targetId}`);
-        }
-    });
-});
-
-/* ============================================
-   TYPING EFFECT FOR HERO TITLE (OPTIONAL)
-   ============================================ */
-
-// Uncomment this section if you want a typing effect for the hero title
-/*
-const heroTitle = document.querySelector('.hero-title');
-const titleText = heroTitle.textContent;
-heroTitle.textContent = '';
-
-let charIndex = 0;
-
-function typeTitle() {
-    if (charIndex < titleText.length) {
-        heroTitle.textContent += titleText.charAt(charIndex);
-        charIndex++;
-        setTimeout(typeTitle, 100);
-    }
-}
-
-// Start typing effect after page loads
-window.addEventListener('load', () => {
-    setTimeout(typeTitle, 500);
-});
-*/
-
-/* ============================================
-   PERFORMANCE OPTIMIZATION
-   ============================================ */
-
-// Debounce function to limit scroll event frequency
-function debounce(func, wait = 10) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
-}
-
-// Apply debounce to scroll event handlers
-const debouncedHighlightNavLink = debounce(highlightNavLink, 10);
-window.removeEventListener('scroll', highlightNavLink);
-window.addEventListener('scroll', debouncedHighlightNavLink);
-
-/* ============================================
-   CONSOLE MESSAGE (EASTER EGG)
-   ============================================ */
-
-console.log(
-    '%c👋 Hi there, Developer!',
-    'color: #6C5CE7; font-size: 24px; font-weight: bold;'
-);
-console.log(
-    '%cLooking at the code? I like that! 🚀',
-    'color: #00B8D4; font-size: 16px;'
-);
-console.log(
-    '%cLet\'s connect: huzaifailyas522@gmail.com',
-    'color: #A29BFE; font-size: 14px;'
-);
-
-/* ============================================
-   PREVENT CONSOLE ERRORS
-   ============================================ */
-
-// Ensure all elements exist before trying to manipulate them
-if (!hamburger || !navMenu) {
-    console.warn('Navigation elements not found');
-}
-
-if (!backToTopButton) {
-    console.warn('Back to top button not found');
-}
-
-/* ============================================
-   PAGE LOAD OPTIMIZATION
-   ============================================ */
-
-// Add a slight delay to ensure smooth animations on page load
-window.addEventListener('load', () => {
-    document.body.style.opacity = '1';
-});
-
-// Set initial opacity
-document.body.style.opacity = '0';
-document.body.style.transition = 'opacity 0.3s ease-in';
-
-/* ============================================
-   ACCESSIBILITY IMPROVEMENTS
-   ============================================ */
-
-// Add keyboard navigation for hamburger menu
-hamburger.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        hamburger.click();
-    }
-});
-
-// Add focus styles for keyboard navigation
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Tab') {
-        document.body.classList.add('keyboard-nav');
-    }
-});
-
-document.addEventListener('mousedown', () => {
-    document.body.classList.remove('keyboard-nav');
-});
-
-/* ============================================
-   DYNAMIC YEAR IN FOOTER (BONUS)
-   ============================================ */
-
-// Update year automatically in footer
-const footerText = document.querySelector('.footer-text');
-if (footerText) {
-    const currentYear = new Date().getFullYear();
-    footerText.innerHTML = footerText.innerHTML.replace('2025', currentYear);
-}
-
-/* ============================================
-   END OF SCRIPT
-   ============================================ */
-
-console.log('%c✅ Portfolio loaded successfully!', 'color: #00B8D4; font-weight: bold;');
-
-}); // End of DOMContentLoaded
