@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const el       = entry.target;
             const target   = parseInt(el.dataset.target, 10);
-            const duration = 1400;
+            const duration = 400;
             const start    = performance.now();
 
             function step(now) {
