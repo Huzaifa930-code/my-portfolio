@@ -104,38 +104,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
 
     /* ============================================
-       STATS COUNTER ANIMATION
+       STATS — static final values (no animation)
        ============================================ */
-
-    // Values are set in HTML; animate only when scrolled into view from below
-    const counterObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (!entry.isIntersecting) return;
-            counterObserver.unobserve(entry.target);
-
-            const el       = entry.target;
-            const target   = parseInt(el.dataset.target, 10);
-            const duration = 1400;
-            let   startTime = null;
-
-            function step(now) {
-                if (!startTime) startTime = now;
-                const progress = Math.min((now - startTime) / duration, 1);
-                const eased    = 1 - Math.pow(1 - progress, 3);
-                el.textContent = progress < 1 ? Math.round(eased * target) : target;
-                if (progress < 1) requestAnimationFrame(step);
-            }
-
-            // Only trigger count-up when the element enters view via scroll,
-            // not on the initial paint (where it was already showing the correct value).
-            if (entry.boundingClientRect.top > 0) {
-                el.textContent = 0;
-                requestAnimationFrame(step);
-            }
-        });
-    }, { threshold: 0.5 });
-
-    document.querySelectorAll('.stat-number[data-target]').forEach(el => counterObserver.observe(el));
 
     /* ============================================
        TYPEWRITER EFFECT
